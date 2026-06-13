@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,14 +19,21 @@ import { Route as AppParentIndexRouteImport } from './routes/_app/parent/index'
 import { Route as AppManagerIndexRouteImport } from './routes/_app/manager/index'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppTeacherLeavesRouteImport } from './routes/_app/teacher/leaves'
+import { Route as AppTeacherAttendanceRouteImport } from './routes/_app/teacher/attendance'
 import { Route as AppParentRescheduleRouteImport } from './routes/_app/parent/reschedule'
 import { Route as AppManagerReschedulesRouteImport } from './routes/_app/manager/reschedules'
 import { Route as AppManagerLeavesRouteImport } from './routes/_app/manager/leaves'
 import { Route as AppAdminRolesRouteImport } from './routes/_app/admin/roles'
 import { Route as AppAdminBranchesRouteImport } from './routes/_app/admin/branches'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin/audit'
+import { Route as AppAdminAttendanceRouteImport } from './routes/_app/admin/attendance'
 import { Route as AppAdminApprovalsRouteImport } from './routes/_app/admin/approvals'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -70,6 +78,11 @@ const AppTeacherLeavesRoute = AppTeacherLeavesRouteImport.update({
   path: '/teacher/leaves',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTeacherAttendanceRoute = AppTeacherAttendanceRouteImport.update({
+  id: '/teacher/attendance',
+  path: '/teacher/attendance',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppParentRescheduleRoute = AppParentRescheduleRouteImport.update({
   id: '/parent/reschedule',
   path: '/parent/reschedule',
@@ -100,6 +113,11 @@ const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminAttendanceRoute = AppAdminAttendanceRouteImport.update({
+  id: '/admin/attendance',
+  path: '/admin/attendance',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminApprovalsRoute = AppAdminApprovalsRouteImport.update({
   id: '/admin/approvals',
   path: '/admin/approvals',
@@ -109,14 +127,17 @@ const AppAdminApprovalsRoute = AppAdminApprovalsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/approvals': typeof AppAdminApprovalsRoute
+  '/admin/attendance': typeof AppAdminAttendanceRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/branches': typeof AppAdminBranchesRoute
   '/admin/roles': typeof AppAdminRolesRoute
   '/manager/leaves': typeof AppManagerLeavesRoute
   '/manager/reschedules': typeof AppManagerReschedulesRoute
   '/parent/reschedule': typeof AppParentRescheduleRoute
+  '/teacher/attendance': typeof AppTeacherAttendanceRoute
   '/teacher/leaves': typeof AppTeacherLeavesRoute
   '/admin/': typeof AppAdminIndexRoute
   '/manager/': typeof AppManagerIndexRoute
@@ -126,14 +147,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/approvals': typeof AppAdminApprovalsRoute
+  '/admin/attendance': typeof AppAdminAttendanceRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/branches': typeof AppAdminBranchesRoute
   '/admin/roles': typeof AppAdminRolesRoute
   '/manager/leaves': typeof AppManagerLeavesRoute
   '/manager/reschedules': typeof AppManagerReschedulesRoute
   '/parent/reschedule': typeof AppParentRescheduleRoute
+  '/teacher/attendance': typeof AppTeacherAttendanceRoute
   '/teacher/leaves': typeof AppTeacherLeavesRoute
   '/admin': typeof AppAdminIndexRoute
   '/manager': typeof AppManagerIndexRoute
@@ -145,14 +169,17 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/admin/approvals': typeof AppAdminApprovalsRoute
+  '/_app/admin/attendance': typeof AppAdminAttendanceRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/branches': typeof AppAdminBranchesRoute
   '/_app/admin/roles': typeof AppAdminRolesRoute
   '/_app/manager/leaves': typeof AppManagerLeavesRoute
   '/_app/manager/reschedules': typeof AppManagerReschedulesRoute
   '/_app/parent/reschedule': typeof AppParentRescheduleRoute
+  '/_app/teacher/attendance': typeof AppTeacherAttendanceRoute
   '/_app/teacher/leaves': typeof AppTeacherLeavesRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/manager/': typeof AppManagerIndexRoute
@@ -164,14 +191,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/register'
     | '/notifications'
     | '/admin/approvals'
+    | '/admin/attendance'
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/roles'
     | '/manager/leaves'
     | '/manager/reschedules'
     | '/parent/reschedule'
+    | '/teacher/attendance'
     | '/teacher/leaves'
     | '/admin/'
     | '/manager/'
@@ -181,14 +211,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/register'
     | '/notifications'
     | '/admin/approvals'
+    | '/admin/attendance'
     | '/admin/audit'
     | '/admin/branches'
     | '/admin/roles'
     | '/manager/leaves'
     | '/manager/reschedules'
     | '/parent/reschedule'
+    | '/teacher/attendance'
     | '/teacher/leaves'
     | '/admin'
     | '/manager'
@@ -199,14 +232,17 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/register'
     | '/_app/notifications'
     | '/_app/admin/approvals'
+    | '/_app/admin/attendance'
     | '/_app/admin/audit'
     | '/_app/admin/branches'
     | '/_app/admin/roles'
     | '/_app/manager/leaves'
     | '/_app/manager/reschedules'
     | '/_app/parent/reschedule'
+    | '/_app/teacher/attendance'
     | '/_app/teacher/leaves'
     | '/_app/admin/'
     | '/_app/manager/'
@@ -218,10 +254,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -285,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeacherLeavesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/teacher/attendance': {
+      id: '/_app/teacher/attendance'
+      path: '/teacher/attendance'
+      fullPath: '/teacher/attendance'
+      preLoaderRoute: typeof AppTeacherAttendanceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/parent/reschedule': {
       id: '/_app/parent/reschedule'
       path: '/parent/reschedule'
@@ -327,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/attendance': {
+      id: '/_app/admin/attendance'
+      path: '/admin/attendance'
+      fullPath: '/admin/attendance'
+      preLoaderRoute: typeof AppAdminAttendanceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/approvals': {
       id: '/_app/admin/approvals'
       path: '/admin/approvals'
@@ -340,12 +398,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppAdminApprovalsRoute: typeof AppAdminApprovalsRoute
+  AppAdminAttendanceRoute: typeof AppAdminAttendanceRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminBranchesRoute: typeof AppAdminBranchesRoute
   AppAdminRolesRoute: typeof AppAdminRolesRoute
   AppManagerLeavesRoute: typeof AppManagerLeavesRoute
   AppManagerReschedulesRoute: typeof AppManagerReschedulesRoute
   AppParentRescheduleRoute: typeof AppParentRescheduleRoute
+  AppTeacherAttendanceRoute: typeof AppTeacherAttendanceRoute
   AppTeacherLeavesRoute: typeof AppTeacherLeavesRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppManagerIndexRoute: typeof AppManagerIndexRoute
@@ -356,12 +416,14 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
   AppAdminApprovalsRoute: AppAdminApprovalsRoute,
+  AppAdminAttendanceRoute: AppAdminAttendanceRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminBranchesRoute: AppAdminBranchesRoute,
   AppAdminRolesRoute: AppAdminRolesRoute,
   AppManagerLeavesRoute: AppManagerLeavesRoute,
   AppManagerReschedulesRoute: AppManagerReschedulesRoute,
   AppParentRescheduleRoute: AppParentRescheduleRoute,
+  AppTeacherAttendanceRoute: AppTeacherAttendanceRoute,
   AppTeacherLeavesRoute: AppTeacherLeavesRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppManagerIndexRoute: AppManagerIndexRoute,
@@ -375,6 +437,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

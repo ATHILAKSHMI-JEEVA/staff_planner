@@ -1,9 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useNavigate, Link }         from "@tanstack/react-router";
+import { useForm }              from "react-hook-form";
+import { zodResolver }          from "@hookform/resolvers/zod";
+import { z }                    from "zod";
+import { useEffect, useState }  from "react";
+import { toast }                from "sonner";
 import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, Zap, Bell } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,7 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-const DEMO_ROLES = [
-  { label: "Teacher",  email: "teacher1@demo.test",  color: "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300" },
-  { label: "Parent",   email: "parent1@demo.test",   color: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 hover:border-emerald-300" },
-  { label: "Admin",    email: "admin1@demo.test",     color: "bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-200 hover:border-violet-300" },
-  { label: "Manager",  email: "manager1@demo.test",  color: "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 hover:border-amber-300" },
-];
-const DEMO_PASSWORD = "Demo1234!";
-
+// Feature highlights shown on the left panel
 const FEATURES = [
   {
     icon: <ShieldCheck className="h-5 w-5" />,
@@ -47,12 +40,11 @@ const FEATURES = [
 ];
 
 export function LoginForm() {
-  const { login, user } = useAuth();
-  const navigate = useNavigate();
-  const [submitting, setSubmitting] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [filledRole, setFilledRole] = useState<string | null>(null);
 
+  const { login, user }                     = useAuth();
+  const navigate                            = useNavigate();
+  const [submitting, setSubmitting]         = useState(false);
+  const [showPw,     setShowPw]             = useState(false);
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -66,13 +58,8 @@ export function LoginForm() {
     }
   }, [user, navigate]);
 
-  const fillDemo = (email: string, label: string) => {
-    form.setValue("email", email);
-    form.setValue("password", DEMO_PASSWORD);
-    form.clearErrors();
-    setFilledRole(label);
-  };
 
+  // Submit handler - calls login(), then navigates to the role-based route
   const onSubmit = async (values: FormData) => {
     setSubmitting(true);
     try {
@@ -160,29 +147,6 @@ export function LoginForm() {
             <h2 className="text-xl font-bold tracking-tight">Sign in to your account</h2>
           </div>
 
-          {/* Demo access */}
-          <div className="space-y-3 p-4 rounded-xl border border-dashed bg-muted/30">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Quick demo access</p>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_ROLES.map((r) => (
-                <button
-                  key={r.label}
-                  type="button"
-                  onClick={() => fillDemo(r.email, r.label)}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-xs font-semibold transition-all duration-150",
-                    r.color,
-                    filledRole === r.label && "ring-2 ring-offset-1 ring-current"
-                  )}
-                >
-                  {r.label}
-                  {filledRole === r.label && <ArrowRight className="h-3 w-3 ml-0.5" />}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center">Password autofilled: <code className="font-mono bg-muted px-1 rounded text-[10px]">{DEMO_PASSWORD}</code></p>
-          </div>
-
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground font-medium">or continue manually</span>
@@ -190,6 +154,8 @@ export function LoginForm() {
           </div>
 
           {/* Form */}
+
+          {/* Login form */}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
@@ -251,6 +217,20 @@ export function LoginForm() {
               )}
             </Button>
           </form>
+
+          {/* Footer note */}
+          <p className="text-center text-[11px] text-muted-foreground/70 leading-relaxed">
+            After login you will be automatically redirected to your
+            portal based on your role (admin / teacher / parent / manager).
+          </p>
+
+          {/* Sign up link */}
+          <p className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Create one
+            </Link>
+          </p>
         </div>
       </div>
     </div>

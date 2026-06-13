@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserCheck as AttIcon } from "lucide-react";
 import { Link, useLocation, Outlet, Navigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, FileText, Bell, LogOut, Menu, X, ShieldCheck,
@@ -15,17 +16,16 @@ interface NavItem { to: string; label: string; icon: React.ReactNode; badge?: nu
 // ── Admin: always full access ─────────────────────────────────────────────────
 function getAdminNavItems(): NavItem[] {
   return [
-    { to: "/admin",           label: "Shortfalls",    icon: <AlertTriangle className="h-4 w-4" /> },
-    { to: "/admin/approvals", label: "Approvals",     icon: <CheckSquare className="h-4 w-4" /> },
-    { to: "/admin/branches",  label: "Branches",      icon: <Building2 className="h-4 w-4" /> },
-    { to: "/admin/audit",     label: "Audit Log",     icon: <ScrollText className="h-4 w-4" /> },
-    { to: "/admin/roles",     label: "Roles & Perms", icon: <ShieldCheck className="h-4 w-4" /> },
-    { to: "/notifications",   label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+    { to: "/admin",            label: "Shortfalls",    icon: <AlertTriangle className="h-4 w-4" /> },
+    { to: "/admin/approvals",  label: "Approvals",     icon: <CheckSquare className="h-4 w-4" /> },
+    { to: "/admin/branches",   label: "Branches",      icon: <Building2 className="h-4 w-4" /> },
+    { to: "/admin/audit",      label: "Audit Log",     icon: <ScrollText className="h-4 w-4" /> },
+    { to: "/admin/roles",      label: "Roles & Perms", icon: <ShieldCheck className="h-4 w-4" /> },
+    { to: "/notifications",    label: "Notifications", icon: <Bell className="h-4 w-4" /> },
   ];
 }
 
 // ── Permission-aware nav for all non-admin roles ───────────────────────────────
-// Module → resource mapping (matches backend permission resource names)
 function buildDynamicNavItems(
   role: string,
   can: (resource: any, action: any) => boolean,
@@ -36,14 +36,14 @@ function buildDynamicNavItems(
   if (role === "teacher") {
     const items: NavItem[] = [];
 
-    // Dashboard — show if any core permission exists
     if (permLoading || can("leaves", "read") || can("sessions", "read"))
       items.push({ to: "/teacher", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> });
 
     if (permLoading || can("leaves", "read"))
       items.push({ to: "/teacher/leaves", label: "My Leaves", icon: <FileText className="h-4 w-4" /> });
 
-    // Extra modules admin may grant to teacher
+    items.push({ to: "/teacher/attendance", label: "Attendance", icon: <AttIcon className="h-4 w-4" /> });
+
     if (can("shortfalls", "read"))
       items.push({ to: "/admin", label: "Shortfalls", icon: <AlertTriangle className="h-4 w-4" /> });
 
@@ -67,14 +67,12 @@ function buildDynamicNavItems(
   if (role === "parent") {
     const items: NavItem[] = [];
 
-    // Schedule page — show if sessions or reschedules access exists
     if (permLoading || can("sessions", "read") || can("reschedules", "read"))
       items.push({ to: "/parent", label: "Schedule", icon: <Calendar className="h-4 w-4" /> });
 
     if (can("reschedules", "read"))
       items.push({ to: "/parent/reschedule", label: "Reschedule", icon: <CalendarClock className="h-4 w-4" /> });
 
-    // Extra modules admin may grant to parent
     if (can("leaves", "read"))
       items.push({ to: "/manager/leaves", label: "Leaves", icon: <FileText className="h-4 w-4" /> });
 
@@ -177,10 +175,8 @@ export function AppLayout() {
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="flex flex-col h-full" style={{ background: "var(--sidebar)", color: "var(--sidebar-foreground)" }}>
       {/* Logo */}
-      <div className={cn(
-        "flex items-center gap-3 px-4 py-5 border-b",
-        collapsed && !mobile && "justify-center px-2"
-      )}
+      <div
+        className={cn("flex items-center gap-3 px-4 py-5 border-b", collapsed && !mobile && "justify-center px-2")}
         style={{ borderColor: "rgba(255,255,255,0.07)" }}
       >
         <div className="h-8 w-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0 shadow-lg shadow-indigo-900/40">
@@ -298,7 +294,6 @@ export function AppLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          {/* FIX: h-screen + overflow-hidden — mobile-ல் எல்லா nav items-உம் தெரியும் */}
           <aside className="relative z-50 w-64 h-screen flex flex-col shadow-2xl overflow-hidden">
             <button
               onClick={() => setMobileOpen(false)}

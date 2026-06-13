@@ -54,3 +54,35 @@ export function useReassignSession() {
     },
   });
 }
+
+/**
+ * Assign a staff member to a session at the moment a client arrives.
+ * POST /sessions/:sessionId/assign  { staff_id }
+ */
+export function useAssignStaffOnArrival() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      staff_id,
+    }: {
+      sessionId: string;
+      staff_id: string;
+    }) => {
+      const { data } = await apiClient.post(`/sessions/${sessionId}/assign`, { staff_id });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["attendance"] });
+      qc.invalidateQueries({ queryKey: ["substitutes"] });
+    },
+  });
+}
+
+/**
+ * Available (on-duty) staff for a given date + branch — used by incharge
+ * to pick who handles a client that just walked in.
+ * GET /sessions/substitutes?date=&branch_id= (reuses the substitutes endpoint)
+ */
+export { useSubstitutes as useAvailableStaff };
