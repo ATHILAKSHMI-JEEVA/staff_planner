@@ -4,6 +4,26 @@ import type { AvailableSlot, Child, Session } from "@/types";
 
 const unwrap = <T,>(d: any, key: string): T => (d?.[key] ?? d?.data ?? d) as T;
 
+export function useRescheduleInfo(childId: string | undefined, sessionId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["reschedule-info", childId, sessionId],
+    enabled: enabled && !!childId,
+    queryFn: async () => {
+      const params: any = { child_id: childId };
+      if (sessionId) params.session_id = sessionId;
+      const { data } = await apiClient.get("/sessions/reschedule-info", { params });
+      return data as {
+        monthly_limit: number;
+        used_this_month: number;
+        limit_reached: boolean;
+        advance_notice_hours: number;
+        hours_until_session: number | null;
+        notice_ok: boolean;
+      };
+    },
+  });
+}
+
 export function useAvailableSlots(date: string, enabled = true) {
   return useQuery({
     queryKey: ["sessions", "available", date],

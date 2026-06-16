@@ -1,11 +1,16 @@
 import axios from "axios";
 
 const baseURL =
-  (import.meta as any).env?.VITE_API_URL || "http://localhost:5000/api/v1";
+  (import.meta as any).env?.VITE_API_URL || "/api";
 
 export const apiClient = axios.create({ baseURL });
 
 apiClient.interceptors.request.use((config) => {
+  // Auto-add trailing slash if missing (Django requires it)
+  if (config.url && !config.url.endsWith("/") && !config.url.includes("?")) {
+    config.url = config.url + "/";
+  }
+
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("auth_token");
     if (token) {

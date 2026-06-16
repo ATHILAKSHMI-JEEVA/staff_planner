@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import apiClient from "@/api/axiosClient";
-import type { UserProfile } from "@/types";
+import apiClient from "../../../api/axiosClient";
+import type { UserProfile } from "../../../types";
 
 interface AuthContextValue {
   user: UserProfile | null;

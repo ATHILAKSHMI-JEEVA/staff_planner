@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/api/axiosClient";
 import type { RBACRole, Permission } from "@/types";
 
-// ── Fetch all roles ───────────────────────────────────────────────────────────
 async function fetchAllRoles(): Promise<RBACRole[]> {
   const { data } = await apiClient.get("/roles");
   return data.roles;
@@ -17,7 +16,6 @@ export function useRoles() {
   });
 }
 
-// ── Fetch a single role ───────────────────────────────────────────────────────
 async function fetchRoleById(id: string): Promise<RBACRole> {
   const { data } = await apiClient.get(`/roles/${id}`);
   return data.role;
@@ -31,7 +29,6 @@ export function useRole(id: string | null) {
   });
 }
 
-// ── Create role ───────────────────────────────────────────────────────────────
 export function useCreateRole() {
   const qc = useQueryClient();
   return useMutation({
@@ -41,7 +38,6 @@ export function useCreateRole() {
   });
 }
 
-// ── Update role (name / description / permissions) ────────────────────────────
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
@@ -57,14 +53,12 @@ export function useUpdateRole() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["roles"] });
       qc.invalidateQueries({ queryKey: ["roles", vars.id] });
-      // Invalidate ALL permission caches so nav updates immediately
       qc.invalidateQueries({ queryKey: ["permissions-by-id"] });
       qc.invalidateQueries({ queryKey: ["permissions-by-name"] });
     },
   });
 }
 
-// ── Delete role ───────────────────────────────────────────────────────────────
 export function useDeleteRole() {
   const qc = useQueryClient();
   return useMutation({

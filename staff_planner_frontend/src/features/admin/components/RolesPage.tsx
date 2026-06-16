@@ -370,6 +370,7 @@ export function RolesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Mobile: track which panel is visible ("list" | "perms")
   const [mobileView, setMobileView] = useState<"list" | "perms">("list");
 
@@ -432,8 +433,10 @@ export function RolesPage() {
       setIsDirty(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch {
-      // error
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to save. Please try again.";
+      setSaveError(msg);
+      setTimeout(() => setSaveError(null), 4000);
     } finally {
       setSaving(false);
     }
@@ -647,15 +650,16 @@ export function RolesPage() {
               isDirty && selectedRoleId
                 ? "bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-900/20"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
-              saveSuccess && "bg-green-600 hover:bg-green-600"
+              saveSuccess && "bg-green-600 hover:bg-green-600",
+              saveError && "bg-red-600 hover:bg-red-600 text-white"
             )}
           >
             <Save className="h-4 w-4" />
             <span className="hidden sm:inline">
-              {saving ? "Saving…" : saveSuccess ? "Saved!" : "Save Changes"}
+              {saving ? "Saving…" : saveSuccess ? "Saved!" : saveError ? "Save Failed!" : "Save Changes"}
             </span>
             <span className="sm:hidden">
-              {saving ? "…" : saveSuccess ? "✓" : "Save"}
+              {saving ? "…" : saveSuccess ? "✓" : saveError ? "✗" : "Save"}
             </span>
           </button>
         </div>

@@ -209,3 +209,22 @@ export interface BranchMember {
 export interface BranchDetail extends Branch {
   members: BranchMember[];
 }
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  performed_by_id?: string;
+  performed_by_name?: string;
+  performer_role?: string;
+  performer_branch_name?: string;
+  target_user_id?: string;
+  target_user_name?: string;
+  target_branch_name?: string;
+  leave_date?: string;
+  leave_type?: string;
+  session_id?: string;
+  old_slot_id?: string;
+  new_slot_id?: string;
+  meta_json?: Record<string, any>;
+  created_at: string;
+}

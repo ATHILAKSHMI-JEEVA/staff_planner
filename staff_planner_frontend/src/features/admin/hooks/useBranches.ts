@@ -63,6 +63,30 @@ export function useDeleteBranch() {
   });
 }
 
+// ── Fetch available managers for a branch ────────────────────────────────────
+export interface AvailableManager {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  roles: string[];
+  managed_branch_ids: string[];
+  already_assigned: boolean;
+}
+
+async function fetchAvailableManagers(branchId: string): Promise<AvailableManager[]> {
+  const { data } = await apiClient.get(`/branches/${branchId}/available-managers`);
+  return data.managers;
+}
+
+export function useAvailableManagers(branchId: string | null) {
+  return useQuery({
+    queryKey: ["branches", branchId, "available-managers"],
+    queryFn:  () => fetchAvailableManagers(branchId!),
+    enabled:  !!branchId,
+  });
+}
+
 // ── Add member to branch ──────────────────────────────────────────────────────
 export function useAddBranchMember() {
   const qc = useQueryClient();
@@ -72,11 +96,13 @@ export function useAddBranchMember() {
       ...payload
     }: {
       branchId: string;
-      name: string;
-      email: string;
-      password: string;
+      name?: string;
+      email?: string;
+      password?: string;
       phone?: string;
       memberType: BranchMemberType;
+      existingUserId?: string;
+      childNames?: string[];
     }) =>
       apiClient.post(`/branches/${branchId}/members`, payload).then((r) => r.data.user),
     onSuccess: (_d, vars) => {

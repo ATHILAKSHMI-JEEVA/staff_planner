@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Building2, Plus, Pencil, Trash2, Users, ChevronRight,
+  Building2, Plus, Pencil, Trash2, Users,
   X, Check, UserPlus, UserMinus, Phone, MapPin, Eye, EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
   useDeleteBranch,
   useAddBranchMember,
   useRemoveBranchMember,
+  useAvailableManagers,
 } from "@/features/admin/hooks/useBranches";
 import type { Branch, BranchMemberType } from "@/types";
 
@@ -67,6 +68,20 @@ const MEMBER_TYPES: {
 
 function getMeta(key: string) {
   return MEMBER_TYPES.find((m) => m.key === key) ?? MEMBER_TYPES[1];
+}
+
+// ── Per-branch accent palette — cycles through a small distinctive set ────────
+const BRANCH_ACCENTS = [
+  { bar: "bg-indigo-500",  chip: "bg-indigo-50 text-indigo-600",   ring: "ring-indigo-100" },
+  { bar: "bg-amber-500",   chip: "bg-amber-50 text-amber-600",     ring: "ring-amber-100" },
+  { bar: "bg-emerald-500", chip: "bg-emerald-50 text-emerald-600", ring: "ring-emerald-100" },
+  { bar: "bg-rose-500",    chip: "bg-rose-50 text-rose-600",       ring: "ring-rose-100" },
+  { bar: "bg-sky-500",     chip: "bg-sky-50 text-sky-600",         ring: "ring-sky-100" },
+  { bar: "bg-violet-500",  chip: "bg-violet-50 text-violet-600",   ring: "ring-violet-100" },
+];
+
+function accentFor(index: number) {
+  return BRANCH_ACCENTS[index % BRANCH_ACCENTS.length];
 }
 
 function RoleBadge({ typeKey }: { typeKey: string }) {
@@ -159,20 +174,63 @@ function BranchForm({ initial, onSave, onCancel, loading }: BranchFormProps) {
 
 // ── Add member form ───────────────────────────────────────────────────────────
 function AddMemberForm({ branchId, onClose }: { branchId: string; onClose: () => void }) {
-  const [name,       setName]       = useState("");
-  const [email,      setEmail]      = useState("");
-  const [password,   setPassword]   = useState("");
-  const [phone,      setPhone]      = useState("");
-  const [memberType, setMemberType] = useState<BranchMemberType>("staff");
-  const [showPw,     setShowPw]     = useState(false);
-  const [error,      setError]      = useState("");
+  const [name,           setName]           = useState("");
+  const [email,          setEmail]          = useState("");
+  const [password,       setPassword]       = useState("");
+  const [phone,          setPhone]          = useState("");
+  const [memberType,     setMemberType]     = useState<BranchMemberType>("staff");
+  const [showPw,         setShowPw]         = useState(false);
+  const [error,          setError]          = useState("");
+  const [selectedMgrId,  setSelectedMgrId]  = useState("");
+  const [createMgrMode,  setCreateMgrMode]  = useState(false);
+  const [childNames,     setChildNames]     = useState<string[]>([""]);
 
   const addMember = useAddBranchMember();
+  const { data: availableManagers = [], isLoading: mgrsLoading } = useAvailableManagers(
+    memberType === "manager" ? branchId : null
+  );
+
+  const isManager = memberType === "manager";
 
   const handleAdd = async () => {
     setError("");
+    if (isManager && !createMgrMode) {
+      if (!selectedMgrId) {
+        setError("Please select a manager.");
+        return;
+      }
+      try {
+        await addMember.mutateAsync({
+          branchId,
+          memberType,
+          existingUserId: selectedMgrId,
+          name: "",
+          email: "",
+          password: "",
+        });
+        onClose();
+      } catch (err: any) {
+        setError(err?.response?.data?.message ?? "Failed to add manager");
+      }
+      return;
+    }
+
     if (!name.trim()) {
       setError("Full name is required.");
+      return;
+    }
+    if (memberType === "client") {
+      const cleaned = childNames.map((c) => c.trim()).filter(Boolean);
+      if (cleaned.length === 0) {
+        setError("Please enter at least one child's name.");
+        return;
+      }
+      try {
+        await addMember.mutateAsync({ branchId, name, email, password, phone, memberType, childNames: cleaned });
+        onClose();
+      } catch (err: any) {
+        setError(err?.response?.data?.message ?? "Failed to add member");
+      }
       return;
     }
     try {
@@ -197,7 +255,13 @@ function AddMemberForm({ branchId, onClose }: { branchId: string; onClose: () =>
         <div className="relative">
           <select
             value={memberType}
-            onChange={(e) => setMemberType(e.target.value as BranchMemberType)}
+            onChange={(e) => {
+              setMemberType(e.target.value as BranchMemberType);
+              setSelectedMgrId("");
+              setCreateMgrMode(false);
+              setChildNames([""]);
+              setError("");
+            }}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white appearance-none pr-8 cursor-pointer"
           >
             {MEMBER_TYPES.map((mt) => (
@@ -210,57 +274,208 @@ function AddMemberForm({ branchId, onClose }: { branchId: string; onClose: () =>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
-          <input
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Ravi Kumar"
-          />
+      {/* Manager: show existing manager picker OR create new form */}
+      {isManager ? (
+        <div className="space-y-3">
+          {!createMgrMode ? (
+            <>
+              <label className="block text-xs font-medium text-gray-700">Select Manager *</label>
+              {mgrsLoading ? (
+                <p className="text-xs text-gray-400 py-2">Loading managers…</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {availableManagers.map((mgr) => {
+                    const alreadyHere = mgr.already_assigned;
+                    const isChosen = selectedMgrId === mgr.id;
+                    return (
+                      <button
+                        key={mgr.id}
+                        disabled={alreadyHere}
+                        onClick={() => setSelectedMgrId(mgr.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all",
+                          alreadyHere
+                            ? "opacity-50 cursor-not-allowed bg-gray-100 border-gray-200"
+                            : isChosen
+                            ? "bg-indigo-50 border-indigo-400 ring-1 ring-indigo-300"
+                            : "bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50"
+                        )}
+                      >
+                        <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
+                          {mgr.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{mgr.name}</p>
+                          {mgr.email && <p className="text-xs text-gray-400 truncate">{mgr.email}</p>}
+                        </div>
+                        {alreadyHere && (
+                          <span className="text-xs text-gray-400 shrink-0 border px-2 py-0.5 rounded-full">
+                            Already here
+                          </span>
+                        )}
+                        {isChosen && !alreadyHere && (
+                          <Check className="h-4 w-4 text-indigo-600 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Create new manager toggle */}
+              <button
+                onClick={() => { setCreateMgrMode(true); setSelectedMgrId(""); setError(""); }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-lg border border-dashed border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all"
+              >
+                <Plus className="h-3.5 w-3.5" /> Create New Manager
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-700">Create New Manager</label>
+                <button
+                  onClick={() => { setCreateMgrMode(false); setError(""); }}
+                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                >
+                  <X className="h-3 w-3" /> Back to list
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ravi Kumar"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ravi@example.com"
+                  />
+                </div>
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                  <input
+                    type={showPw ? "text" : "password"}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white pr-9"
+                    value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars"
+                  />
+                  <button type="button" onClick={() => setShowPw((p) => !p)}
+                    className="absolute right-2.5 top-7 text-gray-400 hover:text-gray-600">
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210"
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Email <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type="email"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="ravi@example.com"
-          />
+      ) : (
+        /* Non-manager: show name / email / password / phone fields */
+        <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {memberType === "client" ? "Parent Name *" : "Full Name *"}
+            </label>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Ravi Kumar"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Email <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="email"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ravi@example.com"
+            />
+          </div>
+          <div className="relative">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Password <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type={showPw ? "text" : "password"}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white pr-9"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min 8 chars"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw((p) => !p)}
+              className="absolute right-2.5 top-7 text-gray-400 hover:text-gray-600"
+            >
+              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="9876543210"
+            />
+          </div>
         </div>
-        <div className="relative">
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Password <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type={showPw ? "text" : "password"}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white pr-9"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Min 8 chars"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw((p) => !p)}
-            className="absolute right-2.5 top-7 text-gray-400 hover:text-gray-600"
-          >
-            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-          <input
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="9876543210"
-          />
-        </div>
-      </div>
+
+        {/* Client: Children list (a parent can have multiple children) */}
+        {memberType === "client" && (
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-gray-700">Children *</label>
+            <div className="space-y-2">
+              {childNames.map((cname, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    value={cname}
+                    onChange={(e) => {
+                      const next = [...childNames];
+                      next[idx] = e.target.value;
+                      setChildNames(next);
+                    }}
+                    placeholder={`Child ${idx + 1} name`}
+                  />
+                  {childNames.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setChildNames(childNames.filter((_, i) => i !== idx))}
+                      className="shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setChildNames([...childNames, ""])}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-lg border border-dashed border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Another Child
+            </button>
+          </div>
+        )}
+        </>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -269,7 +484,11 @@ function AddMemberForm({ branchId, onClose }: { branchId: string; onClose: () =>
           Cancel
         </button>
         <button
-          disabled={addMember.isPending}
+          disabled={
+            addMember.isPending ||
+            (isManager && !createMgrMode && !selectedMgrId) ||
+            ((!isManager || createMgrMode) && !name.trim())
+          }
           onClick={handleAdd}
           className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1"
         >
@@ -464,7 +683,7 @@ export function BranchesPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
 
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
@@ -511,87 +730,109 @@ export function BranchesPage() {
           <p className="text-sm">No branches yet. Create your first one!</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {branches.map((branch) => (
-            <li key={branch.id}>
-              {editingBranch?.id === branch.id ? (
-                <BranchForm
-                  initial={{ name: branch.name, address: branch.address ?? "", phone: branch.phone ?? "" }}
-                  onSave={handleUpdate}
-                  onCancel={() => { setEditingBranch(null); setError(""); }}
-                  loading={updateBranch.isPending}
-                />
-              ) : (
-                <div
-                  className={cn(
-                    "bg-white border border-gray-100 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow",
-                    !branch.is_active && "opacity-60"
-                  )}
-                >
-                  <div className="shrink-0 w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <Building2 className="h-5 w-5 text-indigo-600" />
-                  </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {branches.map((branch, idx) => {
+            const accent = accentFor(idx);
+            const total = MEMBER_TYPES.reduce((sum, mt) => sum + (branch.member_counts?.[mt.key] ?? 0), 0);
+            const nonZero = MEMBER_TYPES.filter((mt) => (branch.member_counts?.[mt.key] ?? 0) > 0);
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{branch.name}</span>
-                      {!branch.is_active && (
-                        <span className="text-xs text-gray-400 border px-2 py-0.5 rounded-full">Inactive</span>
-                      )}
-                    </div>
-                    {branch.address && (
-                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3" /> {branch.address}
-                      </p>
+            return (
+              <div key={branch.id} className={editingBranch?.id === branch.id ? "sm:col-span-2 lg:col-span-3" : ""}>
+                {editingBranch?.id === branch.id ? (
+                  <BranchForm
+                    initial={{ name: branch.name, address: branch.address ?? "", phone: branch.phone ?? "" }}
+                    onSave={handleUpdate}
+                    onCancel={() => { setEditingBranch(null); setError(""); }}
+                    loading={updateBranch.isPending}
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "group bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col",
+                      !branch.is_active && "opacity-60"
                     )}
-                    {/* Role count pills */}
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {MEMBER_TYPES.map((mt) => (
-                        <span
-                          key={mt.key}
-                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-500"
-                        >
-                          {mt.label}
-                          <span className="font-semibold text-gray-700 tabular-nums">{branch.member_counts?.[mt.key] ?? 0}</span>
+                  >
+                    {/* Accent bar */}
+                    <div className={cn("h-1.5 w-full", accent.bar)} />
+
+                    <div className="p-5 flex flex-col gap-4 flex-1">
+                      {/* Top row: monogram + name + total badge */}
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className={cn("shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base ring-1", accent.chip, accent.ring)}>
+                          {branch.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 leading-tight">{branch.name}</h3>
+                            {!branch.is_active && (
+                              <span className="text-[11px] text-gray-400 border px-2 py-0.5 rounded-full shrink-0">Inactive</span>
+                            )}
+                          </div>
+                          {branch.address ? (
+                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                              <MapPin className="h-3 w-3 shrink-0" /> <span className="truncate">{branch.address}</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-300 mt-0.5">No address set</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Headcount summary */}
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-gray-900 tabular-nums">{total}</span>
+                        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                          {total === 1 ? "person" : "people"} on roster
                         </span>
-                      ))}
+                      </div>
+
+                      {/* Role breakdown — only non-zero roles, dot separated */}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                        {nonZero.length === 0 ? (
+                          <span className="text-gray-300">No members assigned yet</span>
+                        ) : (
+                          nonZero.map((mt, i) => (
+                            <span key={mt.key} className="flex items-center gap-2">
+                              {i > 0 && <span className="text-gray-200">·</span>}
+                              <span>
+                                <span className="font-semibold text-gray-700 tabular-nums">{branch.member_counts?.[mt.key]}</span>{" "}
+                                {mt.label}
+                              </span>
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Bottom row: view members + actions */}
+                      <div className="mt-auto flex items-center gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => setSelectedBranch(branch.id)}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg py-2 transition-colors"
+                        >
+                          <Users className="h-4 w-4" /> View Members
+                        </button>
+                        <button
+                          onClick={() => { setEditingBranch(branch); setShowCreateForm(false); }}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Edit branch"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(branch)}
+                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          title="Delete branch"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setSelectedBranch(branch.id)}
-                      className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-400 hover:text-indigo-600 transition-colors"
-                      title="View members"
-                    >
-                      <Users className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => { setEditingBranch(branch); setShowCreateForm(false); }}
-                      className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Edit branch"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(branch)}
-                      className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Delete branch"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setSelectedBranch(branch.id)}
-                      className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {selectedBranch && (

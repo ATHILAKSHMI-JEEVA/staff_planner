@@ -658,6 +658,7 @@ export function TeacherDashboard() {
             <BranchTimetableGrid
               staffList={staffList}
               sessions={sessions.data ?? []}
+              
               onLeaveIds={onLeaveIds}
               currentUserId={user?.id ?? ""}
               date={dateStr}
