@@ -78,8 +78,7 @@ export function LoginForm() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[44%] mesh-bg flex-col justify-between p-12 text-white relative overflow-hidden">
-        {/* Noise texture overlay */}
+        <div className="flex lg:w-[44%] mesh-bg flex-col justify-between p-12 text-white relative overflow-hidden">          {/* Noise texture overlay */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
