@@ -131,7 +131,7 @@ export function LoginForm() {
         <div className="w-full max-w-[380px] space-y-7">
 
           {/* Mobile logo */}
-          <div className="flex flex-col items-center lg:hidden pb-2">
+          <div className="flex flex-col items-center lg:hidden pb-1">
             <div className="h-12 w-12 rounded-2xl mesh-bg text-white flex items-center justify-center text-xl font-black shadow-lg shadow-indigo-500/25">V</div>
             <h1 className="mt-3 text-xl font-bold tracking-tight">Bright Steps</h1>
             <p className="text-sm text-muted-foreground">Staff Planner</p>
