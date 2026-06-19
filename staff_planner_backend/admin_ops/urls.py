@@ -6,6 +6,7 @@ from .views import (
     BranchMemberView,
     BranchMemberRemoveView,
     AvailableManagersView,
+    StaffDirectoryView,
 )
 
 urlpatterns = [
@@ -13,6 +14,8 @@ urlpatterns = [
     path('audit-logs', AuditLogListView.as_view()),
     path('admin/audit/', AuditLogListView.as_view()),
     path('admin/audit', AuditLogListView.as_view()),
+    path('staff-directory/', StaffDirectoryView.as_view()),
+    path('staff-directory', StaffDirectoryView.as_view()),
     path('branches/', BranchListCreateView.as_view()),
     path('branches', BranchListCreateView.as_view()),
     path('branches/<uuid:pk>/', BranchDetailView.as_view()),

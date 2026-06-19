@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
 from session_management.models import Session
 from notifications.models import Notification
 
@@ -161,6 +162,7 @@ class ManagerRescheduleDecisionView(APIView):
             session.reschedule_status = "approved"
             session.status            = "rescheduled"
             session.reschedule_count  = (session.reschedule_count or 0) + 1  # track usage
+            session.last_reschedule_at = timezone.now()  # quota is based on when it was used, not the new session date
             session.save()
 
             # Notify parent

@@ -16,6 +16,7 @@ interface NavItem { to: string; label: string; icon: React.ReactNode; badge?: nu
 // ── Admin: always full access ─────────────────────────────────────────────────
 function getAdminNavItems(): NavItem[] {
   return [
+    { to: "/admin/dashboard", label: "Dashboard",      icon: <LayoutDashboard className="h-4 w-4" /> },
     { to: "/admin",            label: "Shortfalls",    icon: <AlertTriangle className="h-4 w-4" /> },
     { to: "/admin/approvals",  label: "Approvals",     icon: <CheckSquare className="h-4 w-4" /> },
     { to: "/admin/branches",   label: "Branches",      icon: <Building2 className="h-4 w-4" /> },
@@ -126,14 +127,46 @@ function buildDynamicNavItems(
     return items;
   }
 
+  // ── BRANCH INCHARGE ─────────────────────────────────────────────────────────
+  if (role === "incharge") {
+    const items: NavItem[] = [];
+
+    items.push({ to: "/manager", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> });
+
+    if (can("leaves", "read"))
+      items.push({ to: "/manager/leaves", label: "Leaves", icon: <FileText className="h-4 w-4" /> });
+
+    if (can("reschedules", "read"))
+      items.push({ to: "/manager/reschedules", label: "Reschedules", icon: <CalendarClock className="h-4 w-4" /> });
+
+    if (can("shortfalls", "read"))
+      items.push({ to: "/admin", label: "Shortfalls", icon: <AlertTriangle className="h-4 w-4" /> });
+
+    if (can("sessions", "read"))
+      items.push({ to: "/admin/approvals", label: "Approvals", icon: <CheckSquare className="h-4 w-4" /> });
+
+    if (can("users", "read"))
+      items.push({ to: "/admin/approvals", label: "Staff", icon: <Users className="h-4 w-4" /> });
+
+    if (can("roles", "read"))
+      items.push({ to: "/admin/roles", label: "Roles & Perms", icon: <ShieldCheck className="h-4 w-4" /> });
+
+    if (can("audit", "read"))
+      items.push({ to: "/admin/audit", label: "Audit Log", icon: <ScrollText className="h-4 w-4" /> });
+
+    items.push({ to: "/notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> });
+    return items;
+  }
+
   return [];
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  teacher: "bg-blue-500",
-  parent:  "bg-emerald-500",
-  admin:   "bg-violet-500",
-  manager: "bg-amber-500",
+  teacher:  "bg-blue-500",
+  parent:   "bg-emerald-500",
+  admin:    "bg-violet-500",
+  manager:  "bg-amber-500",
+  incharge: "bg-rose-500",
 };
 
 function Avatar({ name, role }: { name: string; role: string }) {

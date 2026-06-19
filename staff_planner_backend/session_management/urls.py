@@ -14,6 +14,7 @@ from .views import (
     AttendanceListView,
     AssignStaffView,
     CheckoutView,
+    RecurringScheduleView,
 )
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     path("my-child/",                       MyChildSessionsView.as_view()),
     path("reschedule-info/",                RescheduleInfoView.as_view()),
     path("attendance/",                     AttendanceListView.as_view()),
+    path("recurring-schedule/",             RecurringScheduleView.as_view()),
     path("<uuid:id>/reschedule/",           RescheduleSessionView.as_view()),
     path("<uuid:id>/confirm-reschedule/",   ConfirmRescheduleView.as_view()),
     path("<uuid:id>/attendance/",           MarkAttendanceView.as_view()),

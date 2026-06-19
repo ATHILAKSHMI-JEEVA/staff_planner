@@ -1,11 +1,13 @@
 from rest_framework import generics
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Session, Attendance
+from .models import Session, Attendance, RecurringSchedule
 from .serializers import SessionSerializer
 from leaves.models import LeaveRequest
 from users.models import User
 from notifications.models import Notification
+from .utils import get_branch_approvers, generate_sessions_from_schedule
 from django.utils import timezone
 import uuid
 from datetime import datetime, date as date_type
@@ -249,8 +251,8 @@ class RescheduleInfoView(APIView):
         used_this_month = Session.objects.filter(
             child_id=child_id,
             reschedule_count__gt=0,
-            date__year=today.year,
-            date__month=today.month,
+            last_reschedule_at__year=today.year,
+            last_reschedule_at__month=today.month,
         ).aggregate(total=__import__('django.db.models', fromlist=['Sum']).Sum('reschedule_count'))['total'] or 0
         limit_reached = used_this_month >= RESCHEDULE_MONTHLY_LIMIT
         hours_until   = None
@@ -286,8 +288,8 @@ class RescheduleSessionView(APIView):
         used_this_month = Session.objects.filter(
             child_id=session.child_id,
             reschedule_count__gt=0,
-            date__year=today.year,
-            date__month=today.month,
+            last_reschedule_at__year=today.year,
+            last_reschedule_at__month=today.month,
         ).aggregate(total=Sum('reschedule_count'))['total'] or 0
 
         limit_exceeded = used_this_month >= RESCHEDULE_MONTHLY_LIMIT
@@ -346,15 +348,14 @@ class RescheduleSessionView(APIView):
         if limit_exceeded:
             session.reschedule_status = f"pending-admin:{new_slot_id}:{new_date}:{start_str}:{end_str}:{teacher_id if str(new_slot_id).startswith('free-') else ''}"
             session.save()
-            # Notify admin/manager for approval
+            # Notify branch incharge + manager for approval
             if session.branch:
-                from django.db.models import Q
-                managers    = User.objects.filter(roles__contains=["manager"], is_active=True).filter(Q(managed_branches=session.branch) | Q(branch=session.branch)).distinct()
+                approvers   = get_branch_approvers(session.branch)
                 child_name  = session.child.name if session.child else "Child"
                 parent_name = session.child.parent_user.name if session.child and session.child.parent_user else "Parent"
-                for manager in managers:
+                for approver in approvers:
                     Notification.objects.create(
-                        user=manager,
+                        user=approver,
                         type="reschedule_admin_approval",
                         title="⚠️ Reschedule Needs Approval",
                         message=f"{parent_name} has exceeded the monthly reschedule limit ({used_this_month}/{RESCHEDULE_MONTHLY_LIMIT}). Their request for {child_name}'s session on {session.date} requires your approval.",
@@ -377,15 +378,14 @@ class RescheduleSessionView(APIView):
             session.reschedule_status = f"pending:{new_slot_id}"
         session.save()
 
-        # Notify manager
+        # Notify branch incharge + manager
         if session.branch:
-            from django.db.models import Q
-            managers    = User.objects.filter(roles__contains=["manager"], is_active=True).filter(Q(managed_branches=session.branch) | Q(branch=session.branch)).distinct()
+            approvers   = get_branch_approvers(session.branch)
             child_name  = session.child.name if session.child else "Child"
             parent_name = session.child.parent_user.name if session.child and session.child.parent_user else "Parent"
-            for manager in managers:
+            for approver in approvers:
                 Notification.objects.create(
-                    user=manager,
+                    user=approver,
                     type="reschedule_requested",
                     title="New Reschedule Request 🔄",
                     message=f"{parent_name} has requested a reschedule for {child_name}'s session on {session.date}.",
@@ -400,8 +400,6 @@ class RescheduleSessionView(APIView):
             "limit": RESCHEDULE_MONTHLY_LIMIT,
             "slot": slot_info,
         })
-
-
 # ✅ 10. PARENT — CANCEL RESCHEDULE
 class ConfirmRescheduleView(APIView):
     def post(self, request, id):
@@ -574,3 +572,50 @@ class AssignStaffView(APIView):
             "assigned_staff_name": staff.name,
             "child_name":          session.child.name if session.child else "",
         })
+
+
+# ✅ 14. RECURRING SCHEDULE — create/update a child's weekly schedule
+# and auto-generate the next 4 weeks of Session rows from it.
+# POST /api/sessions/recurring-schedule/
+class RecurringScheduleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from users.models import Child
+
+        child_id     = request.data.get('child_id')
+        teacher_id   = request.data.get('teacher_id')
+        days_of_week = request.data.get('days_of_week')   # e.g. [0, 2, 4]
+        start_time   = request.data.get('start_time')      # "10:00"
+        end_time     = request.data.get('end_time')        # "11:00"
+
+        if not all([child_id, teacher_id, days_of_week, start_time, end_time]):
+            return Response(
+                {"message": "child_id, teacher_id, days_of_week, start_time, end_time are required"},
+                status=400,
+            )
+
+        try:
+            child = Child.objects.get(id=child_id)
+        except Child.DoesNotExist:
+            return Response({"message": "Child not found"}, status=404)
+
+        schedule, _ = RecurringSchedule.objects.update_or_create(
+            child=child,
+            defaults={
+                "teacher_id": teacher_id,
+                "branch": child.branch,
+                "days_of_week": days_of_week,
+                "start_time": start_time,
+                "end_time": end_time,
+                "is_active": True,
+            },
+        )
+
+        created_sessions = generate_sessions_from_schedule(schedule, weeks_ahead=4)
+
+        return Response({
+            "message": "Recurring schedule saved",
+            "schedule_id": str(schedule.id),
+            "sessions_created": len(created_sessions),
+        }, status=201)

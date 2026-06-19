@@ -24,6 +24,7 @@ import { Route as AppParentRescheduleRouteImport } from './routes/_app/parent/re
 import { Route as AppManagerReschedulesRouteImport } from './routes/_app/manager/reschedules'
 import { Route as AppManagerLeavesRouteImport } from './routes/_app/manager/leaves'
 import { Route as AppAdminRolesRouteImport } from './routes/_app/admin/roles'
+import { Route as AppAdminDashboardRouteImport } from './routes/_app/admin/dashboard'
 import { Route as AppAdminBranchesRouteImport } from './routes/_app/admin/branches'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin/audit'
 import { Route as AppAdminAttendanceRouteImport } from './routes/_app/admin/attendance'
@@ -103,6 +104,11 @@ const AppAdminRolesRoute = AppAdminRolesRouteImport.update({
   path: '/admin/roles',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminBranchesRoute = AppAdminBranchesRouteImport.update({
   id: '/admin/branches',
   path: '/admin/branches',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/admin/attendance': typeof AppAdminAttendanceRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/branches': typeof AppAdminBranchesRoute
+  '/admin/dashboard': typeof AppAdminDashboardRoute
   '/admin/roles': typeof AppAdminRolesRoute
   '/manager/leaves': typeof AppManagerLeavesRoute
   '/manager/reschedules': typeof AppManagerReschedulesRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/admin/attendance': typeof AppAdminAttendanceRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/branches': typeof AppAdminBranchesRoute
+  '/admin/dashboard': typeof AppAdminDashboardRoute
   '/admin/roles': typeof AppAdminRolesRoute
   '/manager/leaves': typeof AppManagerLeavesRoute
   '/manager/reschedules': typeof AppManagerReschedulesRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/_app/admin/attendance': typeof AppAdminAttendanceRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/branches': typeof AppAdminBranchesRoute
+  '/_app/admin/dashboard': typeof AppAdminDashboardRoute
   '/_app/admin/roles': typeof AppAdminRolesRoute
   '/_app/manager/leaves': typeof AppManagerLeavesRoute
   '/_app/manager/reschedules': typeof AppManagerReschedulesRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin/attendance'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/dashboard'
     | '/admin/roles'
     | '/manager/leaves'
     | '/manager/reschedules'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin/attendance'
     | '/admin/audit'
     | '/admin/branches'
+    | '/admin/dashboard'
     | '/admin/roles'
     | '/manager/leaves'
     | '/manager/reschedules'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/_app/admin/attendance'
     | '/_app/admin/audit'
     | '/_app/admin/branches'
+    | '/_app/admin/dashboard'
     | '/_app/admin/roles'
     | '/_app/manager/leaves'
     | '/_app/manager/reschedules'
@@ -364,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRolesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/dashboard': {
+      id: '/_app/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AppAdminDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/branches': {
       id: '/_app/admin/branches'
       path: '/admin/branches'
@@ -401,6 +420,7 @@ interface AppRouteChildren {
   AppAdminAttendanceRoute: typeof AppAdminAttendanceRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminBranchesRoute: typeof AppAdminBranchesRoute
+  AppAdminDashboardRoute: typeof AppAdminDashboardRoute
   AppAdminRolesRoute: typeof AppAdminRolesRoute
   AppManagerLeavesRoute: typeof AppManagerLeavesRoute
   AppManagerReschedulesRoute: typeof AppManagerReschedulesRoute
@@ -419,6 +439,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminAttendanceRoute: AppAdminAttendanceRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminBranchesRoute: AppAdminBranchesRoute,
+  AppAdminDashboardRoute: AppAdminDashboardRoute,
   AppAdminRolesRoute: AppAdminRolesRoute,
   AppManagerLeavesRoute: AppManagerLeavesRoute,
   AppManagerReschedulesRoute: AppManagerReschedulesRoute,

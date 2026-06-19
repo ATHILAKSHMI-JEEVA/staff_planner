@@ -23,6 +23,13 @@ function getRescheduleStatus(r: RescheduleRequest): string {
   return r.reschedule_status || "pending";
 }
 
+// Backend stores "pending:...", "pending-virtual:...", "pending-admin:..."
+// (extra slot details encoded after the prefix), so we must match the
+// PREFIX, not the exact string.
+function isPendingStatus(status: string): boolean {
+  return status.startsWith("pending");
+}
+
 export function ManagerReschedules() {
   const q = useManagerReschedules();
   const decide = useManagerDecideReschedule();
@@ -34,7 +41,7 @@ export function ManagerReschedules() {
     if (!q.data) return {} as Record<Filter, number>;
     return {
       all: q.data.length,
-      pending: q.data.filter(r => getRescheduleStatus(r) === "pending").length,
+      pending: q.data.filter(r => isPendingStatus(getRescheduleStatus(r))).length,
       approved: q.data.filter(r => getRescheduleStatus(r) === "approved").length,
       rejected: q.data.filter(r => getRescheduleStatus(r) === "rejected").length,
     };
@@ -44,7 +51,9 @@ export function ManagerReschedules() {
     if (!q.data) return [];
     return q.data.filter((r) => {
       const status = getRescheduleStatus(r);
-      const matchFilter = filter === "all" || status === filter;
+      const matchFilter =
+        filter === "all" ||
+        (filter === "pending" ? isPendingStatus(status) : status === filter);
       const matchSearch = search === "" ||
         r.teacher_name?.toLowerCase().includes(search.toLowerCase()) ||
         r.child_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,7 +130,7 @@ export function ManagerReschedules() {
               <TableBody>
                 {filtered.map((r) => {
                   const rStatus = getRescheduleStatus(r);
-                  const isPending = rStatus === "pending";
+                  const isPending = isPendingStatus(rStatus);
                   return (
                     <TableRow key={r.id} className={isPending ? "bg-amber-50/30" : ""}>
                       <TableCell className="font-semibold text-sm">{r.child_name || "Child"}</TableCell>
@@ -131,7 +140,7 @@ export function ManagerReschedules() {
                         {r.start_time} – {r.end_time}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{r.teacher_name || "—"}</TableCell>
-                      <TableCell><StatusBadge status={rStatus} /></TableCell>
+                      <TableCell><StatusBadge status={isPending ? "pending" : rStatus} /></TableCell>
                       <TableCell className="hidden sm:table-cell text-xs text-muted-foreground whitespace-nowrap">
                         {fmtRelative(r.updated_at)}
                       </TableCell>

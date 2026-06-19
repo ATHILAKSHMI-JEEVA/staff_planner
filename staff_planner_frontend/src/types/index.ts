@@ -1,7 +1,7 @@
 // src/types/index.ts
 // ─── Existing types (unchanged) ──────────────────────────────────────────────
 
-export type Role = "teacher" | "parent" | "admin" | "manager";
+export type Role = "teacher" | "parent" | "admin" | "manager" | "incharge";
 
 export interface UserProfile {
   id: string;
@@ -126,6 +126,7 @@ export interface RescheduleRequest {
   end_time: string;
   status: string;
   reschedule_status: "pending" | "approved" | "rejected" | null;
+  rejection_reason?: string | null;
   updated_at: string;
   created_at: string;
 }
@@ -155,16 +156,7 @@ export type PermissionAction =
   | "approve"
   | "manage";
 
-/**
- * Simplified access level for the UI permission editor.
- *
- *   none              → no permission entry for that resource
- *   read              → PermissionAction: "read"
- *   read_write        → PermissionAction: "read_write"
- *   read_write_delete → PermissionAction: "read_write_delete"
- *
- * Special actions (approve, manage) are toggled independently via checkboxes.
- */
+
 export type AccessLevel = "none" | "read" | "read_write" | "read_write_delete";
 
 export interface Permission {
@@ -227,4 +219,38 @@ export interface AuditLogEntry {
   new_slot_id?: string;
   meta_json?: Record<string, any>;
   created_at: string;
+}
+// ─── Staff Directory (role-wise dashboard) ────────────────────────────────────
+
+export type DirectoryRole = "manager" | "staff" | "parent" | "incharge";
+
+export interface DirectoryPerson {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  roles: string[];
+  is_active: boolean;
+  branch_id: string | null;
+  branch_name: string | null;
+}
+
+export interface ManagedBranchBlock {
+  branch_id: string;
+  branch_name: string;
+  staff: DirectoryPerson[];
+  parents: DirectoryPerson[];
+  incharges: DirectoryPerson[];
+}
+
+export interface DirectoryManager extends DirectoryPerson {
+  managed_branches: ManagedBranchBlock[];
+}
+
+export interface StaffDirectory {
+  manager: DirectoryManager[];
+  staff: DirectoryPerson[];
+  parent: DirectoryPerson[];
+  incharge: DirectoryPerson[];
+  counts: Record<DirectoryRole, number>;
 }

@@ -303,3 +303,73 @@ class BranchMemberRemoveView(APIView):
         if not changed:
             return Response({'message': 'Member not found in this branch'}, status=404)
         return Response({'message': 'Member removed from branch'})
+    
+class StaffDirectoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _basic(self, u):
+        return {
+            'id': str(u.id),
+            'name': u.name,
+            'email': u.email,
+            'phone': u.phone,
+            'roles': u.roles or [],
+            'is_active': u.is_active,
+            'branch_id': str(u.branch_id) if u.branch_id else None,
+            'branch_name': u.branch.name if u.branch_id else None,
+        }
+
+    def get(self, request):
+        all_users = User.objects.select_related('branch').all().order_by('name')
+
+        managers, staff, parents, incharges = [], [], [], []
+
+        for u in all_users:
+            roles = u.roles or []
+            base = self._basic(u)
+
+            if 'manager' in roles:
+                managed = list(u.managed_branches.all())
+                managed_ids = {b.id for b in managed}
+                # Primary branch counts as managed too, if set and not duplicated
+                if u.branch_id and u.branch_id not in managed_ids:
+                    managed.append(u.branch)
+                    managed_ids.add(u.branch_id)
+
+                branch_blocks = []
+                for b in managed:
+                    branch_members = User.objects.filter(branch=b)
+                    b_staff = [self._basic(m) for m in branch_members if 'teacher' in (m.roles or [])]
+                    b_parents = [self._basic(m) for m in branch_members if 'parent' in (m.roles or [])]
+                    b_incharges = [self._basic(m) for m in branch_members if 'incharge' in (m.roles or [])]
+                    branch_blocks.append({
+                        'branch_id': str(b.id),
+                        'branch_name': b.name,
+                        'staff': b_staff,
+                        'parents': b_parents,
+                        'incharges': b_incharges,
+                    })
+
+                managers.append({**base, 'managed_branches': branch_blocks})
+
+            if 'teacher' in roles:
+                staff.append(base)
+
+            if 'parent' in roles:
+                parents.append(base)
+
+            if 'incharge' in roles:
+                incharges.append(base)
+
+        return Response({
+            'manager': managers,
+            'staff': staff,
+            'parent': parents,
+            'incharge': incharges,
+            'counts': {
+                'manager': len(managers),
+                'staff': len(staff),
+                'parent': len(parents),
+                'incharge': len(incharges),
+            },
+        })
